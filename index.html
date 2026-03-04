@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>When to Surf — Hot Pipe, Shoreham</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ocean-deep:   #0a1628;
+      --ocean-mid:    #0e2a47;
+      --ocean-light:  #1a4a7a;
+      --wave:         #2196f3;
+      --wave-light:   #64b5f6;
+      --foam:         #e3f2fd;
+      --sand:         #f5e6c8;
+      --green:        #4caf50;
+      --amber:        #ff9800;
+      --red:          #f44336;
+      --text:         #e8f4fd;
+      --text-muted:   #90a8be;
+      --border:       rgba(33, 150, 243, 0.2);
+      --card-bg:      rgba(14, 42, 71, 0.8);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--ocean-deep);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(33, 150, 243, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(10, 22, 40, 0.8) 0%, transparent 50%);
+    }
+
+    .header {
+      background: linear-gradient(180deg, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0.7) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .wave-icon {
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .header-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--wave-light);
+      letter-spacing: -0.3px;
+    }
+
+    .header-text p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+
+    /* API Key setup */
+    .setup-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .setup-card.hidden { display: none; }
+
+    .setup-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .api-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .api-input:focus { border-color: var(--wave); }
+    .api-input::placeholder { color: var(--text-muted); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--wave);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { background: #1976d2; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--wave-light); color: var(--wave-light); }
+
+    .btn-sm { padding: 7px 12px; font-size: 12px; }
+
+    /* Criteria badges */
+    .criteria-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(33, 150, 243, 0.12);
+      border: 1px solid rgba(33, 150, 243, 0.25);
+      color: var(--wave-light);
+    }
+
+    /* Input area */
+    .input-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .message-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      min-height: 48px;
+      max-height: 140px;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+
+    .message-input:focus { border-color: var(--wave); }
+    .message-input::placeholder { color: var(--text-muted); }
+
+    .input-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .fetch-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    /* Response area */
+    .response-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .response-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .response-body {
+      padding: 20px;
+      min-height: 80px;
+    }
+
+    .response-body.empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Markdown styles */
+    .markdown h1, .markdown h2, .markdown h3 {
+      color: var(--wave-light);
+      margin: 16px 0 8px;
+      font-weight: 600;
+    }
+    .markdown h1 { font-size: 20px; }
+    .markdown h2 { font-size: 17px; }
+    .markdown h3 { font-size: 15px; }
+    .markdown h2:first-child, .markdown h3:first-child { margin-top: 0; }
+
+    .markdown p { margin: 8px 0; line-height: 1.65; font-size: 14px; }
+
+    .markdown table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    .markdown th {
+      background: rgba(33, 150, 243, 0.15);
+      padding: 8px 12px;
+      text-align: left;
+      color: var(--wave-light);
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
+    .markdown td {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .markdown tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+
+    .markdown ul, .markdown ol {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    .markdown li { margin: 4px 0; font-size: 14px; line-height: 1.6; }
+
+    .markdown strong { color: var(--wave-light); font-weight: 600; }
+    .markdown em { color: var(--sand); }
+    .markdown code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .markdown blockquote {
+      border-left: 3px solid var(--wave);
+      padding-left: 14px;
+      color: var(--text-muted);
+      margin: 10px 0;
+      font-style: italic;
+    }
+    .markdown hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    /* Status states */
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-dot.loading {
+      background: var(--amber);
+      animation: pulse 1s infinite;
+    }
+    .status-dot.done { background: var(--green); }
+    .status-dot.error { background: var(--red); }
+    .status-dot.idle { background: var(--text-muted); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Loading spinner in response */
+    .loading-wave {
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      height: 24px;
+    }
+    .loading-wave span {
+      display: block;
+      width: 4px;
+      background: var(--wave);
+      border-radius: 2px;
+      animation: wave-bar 1.2s ease-in-out infinite;
+    }
+    .loading-wave span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-wave span:nth-child(3) { animation-delay: 0.4s; }
+    .loading-wave span:nth-child(4) { animation-delay: 0.6s; }
+    .loading-wave span:nth-child(5) { animation-delay: 0.8s; }
+
+    @keyframes wave-bar {
+      0%, 100% { height: 6px; opacity: 0.4; }
+      50% { height: 20px; opacity: 1; }
+    }
+
+    .error-msg {
+      color: #ef9a9a;
+      font-size: 13px;
+      padding: 12px;
+      background: rgba(244, 67, 54, 0.1);
+      border: 1px solid rgba(244, 67, 54, 0.25);
+      border-radius: 8px;
+    }
+
+    /* Key status indicator */
+    .key-status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+    .key-status.set {
+      background: rgba(76, 175, 80, 0.15);
+      color: #81c784;
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    .key-status.unset {
+      background: rgba(244, 67, 54, 0.1);
+      color: #ef9a9a;
+      border: 1px solid rgba(244, 67, 54, 0.2);
+    }
+
+    .divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    @media (max-width: 520px) {
+      .header { padding: 14px 16px; }
+      .container { padding: 16px 12px 60px; }
+      .criteria-bar { gap: 6px; }
+      .badge { font-size: 11px; padding: 4px 9px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useCallback, useEffect } = React;
+
+const SYSTEM_PROMPT = `You are a surf conditions analyst for Hot Pipe, Shoreham, East Sussex (a south-facing beach break).
+
+Your job: analyse surf forecast data and identify when conditions are GOOD.
+
+GOOD CONDITIONS require ALL of the following:
+1. Wave height: 1.5 feet (0.46m) or more
+2. Wave interval (period): more than 5 seconds between waves
+3. Wind direction: Northerly — any of N, NNE, NNW, NW (these are offshore winds for a south-facing beach)
+4. Timing: within 2 hours either side of low tide (tides are roughly twice daily)
+5. Daylight: during daylight hours OR within 1 hour of dawn/dusk
+   - In early spring (March), Shoreham sunrise ≈ 06:30, sunset ≈ 18:00
+
+When given forecast data:
+- List every good session window clearly with date, time range, wave height, wave interval, and wind
+- If no good conditions exist in the window, say so clearly and explain which criterion is failing
+- Highlight the closest near-miss if helpful
+- Keep your response concise and practical — the user wants to know when to paddle out
+
+If the user asks a general question about surfing at this spot, answer helpfully using your knowledge.`;
+
+const SURF_FORECAST_URL = "https://www.surf-forecast.com/breaks/Hotpipe/forecasts/latest/six_day";
+const CORS_PROXY = "https://api.allorigins.win/get?url=";
+
+function App() {
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem("claude_api_key") || "");
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [message, setMessage] = useState("");
+  const [response, setResponse] = useState(null);
+  const [status, setStatus] = useState("idle"); // idle | fetching | thinking | done | error
+  const [statusText, setStatusText] = useState("");
+  const [fetchedData, setFetchedData] = useState(null);
+  const textareaRef = useRef(null);
+
+  const saveKey = (key) => {
+    setApiKey(key);
+    localStorage.setItem("claude_api_key", key);
+  };
+
+  const autoResize = () => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = "auto";
+      ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+    }
+  };
+
+  const fetchSurfData = async () => {
+    setStatus("fetching");
+    setStatusText("Fetching surf-forecast.com…");
+    try {
+      const res = await fetch(`${CORS_PROXY}${encodeURIComponent(SURF_FORECAST_URL)}`);
+      const json = await res.json();
+      const html = json.contents;
+      // Strip HTML tags, keeping meaningful text
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      // Remove scripts/styles
+      tmp.querySelectorAll("script, style, nav, header, footer, .ad, iframe").forEach(el => el.remove());
+      const text = tmp.innerText.replace(/\n{3,}/g, "\n\n").trim();
+      setFetchedData(text);
+      return text;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+
+  const sendToClaude = async (userContent) => {
+    if (!apiKey.trim()) {
+      setStatus("error");
+      setStatusText("API key required");
+      setResponse({ type: "error", text: "Please enter your Anthropic API key above." });
+      return;
+    }
+
+    setStatus("thinking");
+    setStatusText("Claude is analysing…");
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey.trim(),
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "anthropic-dangerous-direct-browser-calls": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1024,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userContent }],
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const text = data.content?.[0]?.text || "(No response)";
+      setResponse({ type: "success", text });
+      setStatus("done");
+      setStatusText("Done");
+    } catch (e) {
+      setResponse({ type: "error", text: `Error: ${e.message}` });
+      setStatus("error");
+      setStatusText("Error");
+    }
+  };
+
+  const handleCheckConditions = async () => {
+    setResponse(null);
+    const surfData = await fetchSurfData();
+    let content;
+    if (surfData) {
+      content = `Here is the current surf forecast data from surf-forecast.com for Hot Pipe, Shoreham:\n\n---\n${surfData.slice(0, 8000)}\n---\n\nPlease analyse this and tell me when conditions will be good.`;
+    } else {
+      content = "I couldn't fetch the live forecast data automatically. Please check the conditions at Hot Pipe, Shoreham based on your general knowledge, or let me know if I should try a different approach.";
+    }
+    await sendToClaude(content);
+  };
+
+  const handleAsk = async () => {
+    if (!message.trim()) return;
+    setResponse(null);
+    const userMsg = message.trim();
+    setMessage("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+
+    let content = userMsg;
+    if (fetchedData) {
+      content = `Context — recent surf forecast for Hot Pipe:\n${fetchedData.slice(0, 4000)}\n\n---\n\n${userMsg}`;
+    }
+    await sendToClaude(content);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleAsk();
+    }
+  };
+
+  const statusDotClass = { idle: "idle", fetching: "loading", thinking: "loading", done: "done", error: "error" }[status];
+  const isLoading = status === "fetching" || status === "thinking";
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="header">
+        <div className="wave-icon">🏄</div>
+        <div className="header-text">
+          <h1>When to Surf</h1>
+          <p>Hot Pipe · Shoreham, East Sussex</p>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+          <span className={`key-status ${apiKey ? "set" : "unset"}`}>
+            {apiKey ? "API key set" : "No API key"}
+          </span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowKeyInput(v => !v)}>
+            {showKeyInput ? "Hide" : "⚙️ Key"}
+          </button>
+        </div>
+      </div>
+
+      <div className="container">
+
+        {/* API Key input */}
+        <div className={`setup-card ${showKeyInput ? "" : "hidden"}`}>
+          <span className="setup-label">Anthropic API Key</span>
+          <input
+            className="api-input"
+            type="password"
+            placeholder="sk-ant-..."
+            value={apiKey}
+            onChange={e => saveKey(e.target.value)}
+          />
+        </div>
+
+        {/* Criteria badges */}
+        <div className="criteria-bar">
+          <span className="badge">🌊 ≥ 1.5ft swell</span>
+          <span className="badge">⏱️ &gt;5s wave interval</span>
+          <span className="badge">🧭 Northerly wind (N, NNE, NW)</span>
+          <span className="badge">🌊 Low tide ±2hrs</span>
+          <span className="badge">☀️ Daylight / dawn / dusk</span>
+        </div>
+
+        {/* Main action */}
+        <div className="input-card">
+          <div style={{ marginBottom: 12 }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleCheckConditions}
+              disabled={isLoading}
+              style={{ width: "100%" }}
+            >
+              {isLoading && status === "fetching" ? "⏳ Fetching forecast…" :
+               isLoading && status === "thinking" ? "🤔 Analysing…" :
+               "🔍 Check conditions now"}
+            </button>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+            <div className="input-row">
+              <textarea
+                ref={textareaRef}
+                className="message-input"
+                placeholder="Or ask a question… e.g. "When's the next good swell?" or "What does SSE wind mean for this spot?""
+                value={message}
+                onChange={e => { setMessage(e.target.value); autoResize(); }}
+                onKeyDown={handleKeyDown}
+                rows={2}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={handleAsk}
+                disabled={isLoading || !message.trim()}
+              >
+                Ask
+              </button>
+            </div>
+            <div className="input-actions">
+              <span className="fetch-hint">↵ Enter to send · Shift+Enter for new line</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Response */}
+        {(response || isLoading) && (
+          <div className="response-card">
+            <div className="response-header">
+              <span>
+                <span className={`status-dot ${statusDotClass}`} />
+                {statusText || "Ready"}
+              </span>
+              {response && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { setResponse(null); setStatus("idle"); setStatusText(""); }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className={`response-body ${!response && isLoading ? "empty" : ""}`}>
+              {isLoading && !response && (
+                <div className="loading-wave">
+                  <span /><span /><span /><span /><span />
+                </div>
+              )}
+              {response?.type === "error" && (
+                <div className="error-msg">{response.text}</div>
+              )}
+              {response?.type === "success" && (
+                <div
+                  className="markdown"
+                  dangerouslySetInnerHTML={{ __html: marked.parse(response.text) }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
