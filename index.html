@@ -44,33 +44,6 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        .setup-section {
-            background: #e8f4f8;
-            border-left: 4px solid #0f4c75;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        .setup-section h3 {
-            color: #0f4c75;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        .setup-section p {
-            color: #555;
-            font-size: 13px;
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-        .api-key-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #0f4c75;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-top: 10px;
-            font-family: monospace;
-        }
         .button {
             width: 100%;
             padding: 14px;
@@ -78,13 +51,17 @@
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 30px;
         }
-        .button:hover {
+        .button:hover:not(:disabled) {
             opacity: 0.9;
+        }
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .hidden {
             display: none;
@@ -158,6 +135,11 @@
             color: #999;
             font-size: 11px;
         }
+        .loading {
+            text-align: center;
+            color: #0f4c75;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -167,14 +149,7 @@
             <div class="location-info">Hot Pipe, Shoreham, East Sussex</div>
         </div>
 
-        <div id="setupSection" class="setup-section">
-            <h3>🔑 Setup</h3>
-            <p>Paste your Claude API key (from console.anthropic.com)</p>
-            <input type="password" id="apiKey" class="api-key-input" placeholder="sk-ant-...">
-            <button class="button" onclick="saveApiKey()">Save API Key</button>
-        </div>
-
-        <button id="fetchButton" class="button hidden" onclick="fetchForecast()">Check Surf Conditions</button>
+        <button class="button" onclick="fetchForecast()" id="fetchButton">Check Surf Conditions</button>
 
         <div id="responseSection" class="response-section hidden">
             <div class="response-title">📊 Good Days to Surf</div>
@@ -198,54 +173,26 @@
     </div>
 
     <script>
-        const setupSection = document.getElementById('setupSection');
         const fetchButton = document.getElementById('fetchButton');
         const responseSection = document.getElementById('responseSection');
         const responseBox = document.getElementById('responseBox');
-        const apiKeyInput = document.getElementById('apiKey');
-
-        function initPage() {
-            const key = localStorage.getItem('bakerbot_key');
-            if (key) {
-                setupSection.classList.add('hidden');
-                fetchButton.classList.remove('hidden');
-            }
-        }
-
-        function saveApiKey() {
-            const key = apiKeyInput.value.trim();
-            if (!key) {
-                alert('Please paste your API key');
-                return;
-            }
-            localStorage.setItem('bakerbot_key', key);
-            apiKeyInput.value = '';
-            initPage();
-        }
 
         async function fetchForecast() {
-            const key = localStorage.getItem('bakerbot_key');
-            if (!key) {
-                responseBox.innerHTML = '<div class="error-box">No API key found</div>';
-                responseSection.classList.remove('hidden');
-                return;
-            }
-
             responseSection.classList.remove('hidden');
-            responseBox.innerHTML = '<div style="text-align: center; color: #0f4c75;">Loading...</div>';
+            responseBox.innerHTML = '<div class="loading">Loading surf conditions...</div>';
             fetchButton.disabled = true;
 
             try {
                 const response = await fetch('/api/forecast', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ apiKey: key })
+                    body: JSON.stringify({})
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Failed');
+                    throw new Error(data.error || 'Failed to fetch forecast');
                 }
 
                 if (data.forecast && data.forecast.length > 0) {
@@ -268,8 +215,6 @@
                 fetchButton.disabled = false;
             }
         }
-
-        initPage();
     </script>
 </body>
 </html>
