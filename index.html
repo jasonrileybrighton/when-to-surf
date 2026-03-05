@@ -1,7 +1,4 @@
-No, that's the package.json code (which you already used).
-For index.html, I need to give you the HTML code again. Here it is:
-Copy this entire code and paste it into your index.html file:
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -70,6 +67,41 @@ html<!DOCTYPE html>
             color: #666;
             font-size: 14px;
             font-weight: 500;
+        }
+
+        .setup-section {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .setup-section h3 {
+            color: #856404;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .setup-section p {
+            color: #856404;
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+
+        .api-key-input::placeholder {
+            color: #999;
         }
 
         .form-group {
@@ -230,6 +262,17 @@ html<!DOCTYPE html>
             <p class="subtitle">AI-powered wave forecasting</p>
         </div>
 
+        <div class="setup-section">
+            <h3>⚙️ Setup Required</h3>
+            <p>Paste your Claude API key below. Get it from <a href="https://console.anthropic.com" target="_blank" style="color: #856404;">console.anthropic.com</a></p>
+            <input 
+                type="password" 
+                id="apiKey" 
+                class="api-key-input"
+                placeholder="Paste your API key here (starts with sk-ant-)"
+            >
+        </div>
+
         <form id="surfForm">
             <div class="form-group">
                 <label for="location">Location or Beach Name</label>
@@ -273,9 +316,21 @@ html<!DOCTYPE html>
         const responseSection = document.getElementById('responseSection');
         const responseBox = document.getElementById('responseBox');
         const submitBtn = form.querySelector('.submit-btn');
+        const apiKeyInput = document.getElementById('apiKey');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                responseBox.innerHTML = `
+                    <div class="error-box">
+                        <strong>Error:</strong> Please paste your Claude API key first
+                    </div>
+                `;
+                responseSection.classList.remove('hidden');
+                return;
+            }
 
             const location = document.getElementById('location').value;
             const details = document.getElementById('details').value;
@@ -291,33 +346,51 @@ html<!DOCTYPE html>
             submitBtn.disabled = true;
 
             try {
-                // Call the serverless function
-                const response = await fetch('/api/forecast', {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
                     },
                     body: JSON.stringify({
-                        location: location,
-                        details: details
+                        model: 'claude-opus-4-1-20250805',
+                        max_tokens: 1024,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: `You are a professional surf forecasting AI. Provide accurate, helpful surf condition forecasts based on the user's request.
+
+User's Location: ${location}
+User's Question/Request: ${details}
+
+Please provide a detailed surf forecast that includes:
+- Current conditions (if known)
+- Best times to surf
+- Swell direction and height estimates
+- Tide information
+- Wind conditions
+- Safety considerations
+- Overall recommendation
+
+Be specific and helpful. Use your knowledge of surf spots and conditions.`
+                            }
+                        ]
                     })
                 });
 
                 const data = await response.json();
 
-                if (data.error) {
-                    responseBox.innerHTML = `
-                        <div class="error-box">
-                            <strong>Error:</strong> ${data.error}
-                        </div>
-                    `;
-                } else {
-                    responseBox.innerHTML = formatResponse(data.forecast);
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'API request failed');
                 }
+
+                const forecast = data.content[0]?.type === 'text' ? data.content[0].text : 'No forecast generated';
+                responseBox.innerHTML = formatResponse(forecast);
             } catch (error) {
                 responseBox.innerHTML = `
                     <div class="error-box">
-                        <strong>Error:</strong> ${error.message || 'Failed to get forecast. Please try again.'}
+                        <strong>Error:</strong> ${error.message || 'Failed to get forecast. Check your API key.'}
                     </div>
                 `;
             } finally {
@@ -326,7 +399,6 @@ html<!DOCTYPE html>
         });
 
         function formatResponse(text) {
-            // Convert markdown-style text to HTML for better readability
             let html = text
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n\n/g, '</p><p>')
