@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakerbot - Hot Pipe Surf Forecast</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f4c75 0%, #1a5f7a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            padding: 50px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #0f4c75;
+            padding-bottom: 20px;
+        }
+        h1 {
+            color: #0f4c75;
+            font-size: 48px;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+        .location-info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .setup-section {
+            background: #e8f4f8;
+            border-left: 4px solid #0f4c75;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .setup-section h3 {
+            color: #0f4c75;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .setup-section p {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .api-key-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #0f4c75;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        .button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #0f4c75 0%, #1a5f7a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .hidden {
+            display: none;
+        }
+        .response-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+        .response-title {
+            color: #0f4c75;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .forecast-card {
+            background: #f8fafb;
+            border-left: 5px solid #0f4c75;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .forecast-card h4 {
+            color: #0f4c75;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .forecast-detail {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+        .no-data {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            color: #856404;
+            font-size: 14px;
+        }
+        .error-box {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 20px;
+            border-radius: 10px;
+            color: #c62828;
+            font-size: 14px;
+        }
+        .criteria-info {
+            background: #f0f7ff;
+            border: 1px solid #0f4c75;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #555;
+        }
+        .criteria-info h4 {
+            color: #0f4c75;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .criteria-info ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌊 Bakerbot</h1>
+            <div class="location-info">Hot Pipe, Shoreham, East Sussex</div>
+        </div>
+
+        <div id="setupSection" class="setup-section">
+            <h3>🔑 Setup</h3>
+            <p>Paste your Claude API key (from console.anthropic.com)</p>
+            <input type="password" id="apiKey" class="api-key-input" placeholder="sk-ant-...">
+            <button class="button" onclick="saveApiKey()">Save API Key</button>
+        </div>
+
+        <button id="fetchButton" class="button hidden" onclick="fetchForecast()">Check Surf Conditions</button>
+
+        <div id="responseSection" class="response-section hidden">
+            <div class="response-title">📊 Good Days to Surf</div>
+            <div id="responseBox"></div>
+        </div>
+
+        <div class="criteria-info">
+            <h4>Criteria for "Good" conditions:</h4>
+            <ul>
+                <li>Wave height: 1.5 feet or more</li>
+                <li>Wave interval: 5+ seconds</li>
+                <li>Wind: Northerly (N, NNE, NW)</li>
+                <li>Timing: Around low tide (±2 hours)</li>
+                <li>Hours: Daylight/dawn/dusk only</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            Powered by Claude AI & Surf-Forecast.com
+        </div>
+    </div>
+
+    <script>
+        const setupSection = document.getElementById('setupSection');
+        const fetchButton = document.getElementById('fetchButton');
+        const responseSection = document.getElementById('responseSection');
+        const responseBox = document.getElementById('responseBox');
+        const apiKeyInput = document.getElementById('apiKey');
+
+        function initPage() {
+            const key = localStorage.getItem('bakerbot_key');
+            if (key) {
+                setupSection.classList.add('hidden');
+                fetchButton.classList.remove('hidden');
+            }
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert('Please paste your API key');
+                return;
+            }
+            localStorage.setItem('bakerbot_key', key);
+            apiKeyInput.value = '';
+            initPage();
+        }
+
+        async function fetchForecast() {
+            const key = localStorage.getItem('bakerbot_key');
+            if (!key) {
+                responseBox.innerHTML = '<div class="error-box">No API key found</div>';
+                responseSection.classList.remove('hidden');
+                return;
+            }
+
+            responseSection.classList.remove('hidden');
+            responseBox.innerHTML = '<div style="text-align: center; color: #0f4c75;">Loading...</div>';
+            fetchButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: key })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed');
+                }
+
+                if (data.forecast && data.forecast.length > 0) {
+                    responseBox.innerHTML = data.forecast.map(day => `
+                        <div class="forecast-card">
+                            <h4>${day.date}</h4>
+                            <div class="forecast-detail"><strong>Time:</strong> ${day.bestTime}</div>
+                            <div class="forecast-detail"><strong>Wave height:</strong> ${day.waveHeight}</div>
+                            <div class="forecast-detail"><strong>Wave period:</strong> ${day.wavePeriod}</div>
+                            <div class="forecast-detail"><strong>Wind:</strong> ${day.wind}</div>
+                            <div class="forecast-detail"><strong>Tide:</strong> ${day.tideTiming}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    responseBox.innerHTML = '<div class="no-data">No good conditions in next 3 days</div>';
+                }
+            } catch (error) {
+                responseBox.innerHTML = `<div class="error-box">Error: ${error.message}</div>`;
+            } finally {
+                fetchButton.disabled = false;
+            }
+        }
+
+        initPage();
+    </script>
+</body>
+</html>
